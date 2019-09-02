@@ -26,13 +26,14 @@ type ReqParam struct{
 }
 
 func main() {
-
+	//todo need to add timer
 	cookie.FetchCookie(UA)
 
+	//todo need to add another timer
 	param := &ReqParam{
 		Key:"刘备教授",
 		Wxid:"oIWsFtx2SU5am12hfw0hb6qYgUXg",
-		Tsn:"3",
+		Tsn:"1",
 		Ua:UA,
 		Referer :"https://weixin.sogou.com/weixin?type=2&ie=utf8&query=刘备教授&tsn=1&wxid=oIWsFtx2SU5am12hfw0hb6qYgUXg",
 		Cookies:cookie.GetCookie(),
@@ -43,13 +44,14 @@ func main() {
 	doc, err := goquery.NewDocumentFromReader(resp.Body)
 	tools.AssertOk(err)
 
-	val, exists := doc.Find(".news-list li .txt-box h3 a").Attr("href")
-	if(exists){
-		param.Key = val
+	selection := doc.Find(".news-list li .txt-box h3 a")
+
+	travel(selection,func(value string){
+		param.Key = value
 		contentUrl := QueryContentUrl(param)
 		param.Key = contentUrl
 		getContent(param)
-	}
+	})
 }
 
 
@@ -61,6 +63,21 @@ func search(param *ReqParam) (resp *http.Response, err error){
 	url := "https://weixin.sogou.com/weixin?type=2&ie=utf8&query="+param.Key+"&tsn="+param.Tsn+"&wxid="+param.Wxid
 	log.Println("search url:"+url)
 	return tools.SogouWechatGet(url, param.Ua,param.Referer, param.Cookies)
+}
+
+
+func travel(selection *goquery.Selection,handle func(string))  {
+	for _,node := range selection.Nodes{
+		for _,attr := range node.Attr {
+			if attr.Key != "href" {
+				continue
+			}
+			value := attr.Val
+			if len(value) > 0 {
+				handle(value)
+			}
+		}
+	}
 }
 
 /**
