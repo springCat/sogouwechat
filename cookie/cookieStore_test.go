@@ -25,11 +25,11 @@ func TestFileCookieStore_Init(t *testing.T) {
 		Expires: time.Now().Add(time.Hour * 24),
 	}
 
-	cookiemap := map[string]*http.Cookie{
-		"SUV":SUV,
-		"SNUID":SNUID,
-	}
-	testStore.Add(cookiemap)
+	cookies := make([]*http.Cookie, 0)
+	cookies = append(cookies, SUV)
+	cookies = append(cookies, SNUID)
+
+	testStore.Add(cookies)
 }
 
 func TestFileCookieStore_Get(t *testing.T) {
