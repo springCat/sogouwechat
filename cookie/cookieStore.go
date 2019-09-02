@@ -8,12 +8,12 @@ import (
 )
 
 /**
-	FIFO store
+	FIFO testStore
  */
 type CookieStore interface {
-	Get() map[string]*http.Cookie
-	Pop() map[string]*http.Cookie
-	Add(map[string]*http.Cookie) error
+	Get() []*http.Cookie
+	Pop() []*http.Cookie
+	Add([]*http.Cookie) error
 	Flush()
 	Init(cacheName string) error
 
@@ -22,7 +22,7 @@ type CookieStore interface {
 type FileCookieStore struct {
 	FilePath   string
 	isInit     bool
-	queue      []map[string]*http.Cookie
+	queue      [][]*http.Cookie
 	len        int
 }
 
@@ -37,7 +37,7 @@ func (store *FileCookieStore) Init(cacheName string) error {
 	return e;
 }
 
-func (store *FileCookieStore) Get() map[string]*http.Cookie{
+func (store *FileCookieStore) Get() []*http.Cookie{
 	store.checkInit()
 	if !store.isInit{
 		panic("FileCookieStore not init")
@@ -48,7 +48,7 @@ func (store *FileCookieStore) Get() map[string]*http.Cookie{
 	return nil
 }
 
-func (store *FileCookieStore) Pop() map[string]*http.Cookie{
+func (store *FileCookieStore) Pop() []*http.Cookie{
 	store.checkInit()
 	if(store.len > 0){
 		last := store.queue[0]
@@ -63,10 +63,10 @@ func (store *FileCookieStore) Pop() map[string]*http.Cookie{
 	return nil
 }
 
-func (store *FileCookieStore) Add(cookies map[string]*http.Cookie) error{
+func (store *FileCookieStore) Add(cookies []*http.Cookie) error{
 	store.checkInit()
 	if(store.len == 0) {
-		store.queue = make([]map[string]*http.Cookie,0)
+		store.queue = make([][]*http.Cookie,0)
 	}
 	store.queue = append(store.queue,cookies)
 	store.len = store.len + 1
@@ -79,7 +79,7 @@ func (store *FileCookieStore) Add(cookies map[string]*http.Cookie) error{
 
 func (store *FileCookieStore) Flush(){
 	store.checkInit()
-	store.queue = make([]map[string]*http.Cookie,0)
+	store.queue = make([][]*http.Cookie,0)
 	store.len = 0
 	ioutil.WriteFile(store.FilePath,nil,os.ModePerm)
 }

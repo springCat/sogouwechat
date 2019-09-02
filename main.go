@@ -14,6 +14,7 @@ import (
 
 var cookiePool map[string]*http.Cookie = map[string]*http.Cookie{}
 var UA = "Mozilla/6.0 (windows; windows NT) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/76.0.3809.132 Safari/537.36"
+
 var vm = otto.New()
 type ReqParam struct{
 	Key string
@@ -23,20 +24,10 @@ type ReqParam struct{
 	Ua string
 	Cookies []*http.Cookie
 }
+
 func main() {
 
-	//getCookie
-	//param := &ReqParam{
-	//	Key:"刘备教授",
-	//	Ua:UA,
-	//}
-	//response, err:= getCookie("刘备教授", nil)
-	//tools.AssertOk(err)
-	//
-	//cookies := response.Cookies()
-	//for _, cookie := range cookies {
-	//	cookiePool[cookie.Name]=cookie;
-	//}
+	cookie.FetchCookie(UA)
 
 	param := &ReqParam{
 		Key:"刘备教授",
@@ -44,7 +35,7 @@ func main() {
 		Tsn:"3",
 		Ua:UA,
 		Referer :"https://weixin.sogou.com/weixin?type=2&ie=utf8&query=刘备教授&tsn=1&wxid=oIWsFtx2SU5am12hfw0hb6qYgUXg",
-		Cookies:cookie.BuildCookies(),
+		Cookies:cookie.GetCookie(),
 	}
 	resp, err := search(param)
 	tools.AssertOk(err)
@@ -55,7 +46,7 @@ func main() {
 	val, exists := doc.Find(".news-list li .txt-box h3 a").Attr("href")
 	if(exists){
 		param.Key = val
-		contentUrl := queryContentUrl(param)
+		contentUrl := QueryContentUrl(param)
 		param.Key = contentUrl
 		getContent(param)
 	}
@@ -64,7 +55,7 @@ func main() {
 
 
 /**
- * first search the key
+ * 1st search the key
  */
 func search(param *ReqParam) (resp *http.Response, err error){
 	url := "https://weixin.sogou.com/weixin?type=2&ie=utf8&query="+param.Key+"&tsn="+param.Tsn+"&wxid="+param.Wxid
@@ -77,7 +68,7 @@ func search(param *ReqParam) (resp *http.Response, err error){
  * get the contentUrl
  */
 
-func queryContentUrl(param *ReqParam) string {
+func QueryContentUrl(param *ReqParam) string {
 	reqUrl := genContentReqUrl(param.Key)
 	url := "https://weixin.sogou.com"+reqUrl
 	log.Println("queryContentUrl url:"+url)
@@ -124,8 +115,14 @@ func parseContentUrl(resp *http.Response) string {
 	log.Println("genContentReqUrl url:"+value.String())
 	return value.String()
 }
+
 /**
- * third get content
+ * ------------------------------------------------------------------------------
+ * get the contentUrl
+ */
+
+/**
+ * 3rd get content
  */
 
 func getContent(param *ReqParam)  {

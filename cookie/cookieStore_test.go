@@ -6,10 +6,10 @@ import (
 	"time"
 )
 
-var store CookieStore = &FileCookieStore{}
+var testStore CookieStore = &FileCookieStore{}
 
 func TestFileCookieStore_Init(t *testing.T) {
-	store.Init("tempCache.txt")
+	testStore.Init("tempCache.txt")
 	SUV := &http.Cookie{
 		Name:    "SUV",
 		Value:   "00B68873700A09345D6B9AA23BB99258",
@@ -29,22 +29,22 @@ func TestFileCookieStore_Init(t *testing.T) {
 		"SUV":SUV,
 		"SNUID":SNUID,
 	}
-	store.Add(cookiemap)
+	testStore.Add(cookiemap)
 }
 
 func TestFileCookieStore_Get(t *testing.T) {
-	store.Init("tempCache.txt")
-	cookies := store.Get()
+	testStore.Init("tempCache.txt")
+	cookies := testStore.Get()
 	println(cookies)
 }
 
 func TestFileCookieStore_Pop(t *testing.T) {
-	store.Init("tempCache.txt")
-	cookies := store.Pop()
+	testStore.Init("tempCache.txt")
+	cookies := testStore.Pop()
 	println(cookies)
 }
 
 func TestFileCookieStore_Flush(t *testing.T) {
-	store.Init("tempCache.txt")
-	store.Flush()
+	testStore.Init("tempCache.txt")
+	testStore.Flush()
 }
