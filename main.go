@@ -1,10 +1,8 @@
 package main
 
 import (
-	"fmt"
 	"io/ioutil"
 	"log"
-	"math/rand"
 	"net/http"
 	"os"
 	"strings"
@@ -15,7 +13,7 @@ import (
 
 var cookiePool map[string]*http.Cookie = map[string]*http.Cookie{}
 var UA = "Mozilla/6.0 (windows; windows NT) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/76.0.3809.132 Safari/537.36"
-
+var vm = otto.New()
 type ReqParam struct{
 	Key string
 	Referer string
@@ -42,7 +40,7 @@ func main() {
 	param := &ReqParam{
 		Key:"刘备教授",
 		Wxid:"oIWsFtx2SU5am12hfw0hb6qYgUXg",
-		Tsn:"3",
+		Tsn:"1",
 		Ua:UA,
 		Cookies:buildCookies(),
 	}
@@ -62,31 +60,29 @@ func main() {
 		assertOk(err)
 
 		contentUrl := parseContentUrl(resp)
-
 		log.Println(contentUrl)
+
 		resp, err := sogouWechatGet(contentUrl, param.Ua, param.Referer, nil)
 		assertOk(err)
 
 		bytes, err := ioutil.ReadAll(resp.Body)
 		assertOk(err)
 
-
 		doc, err = goquery.NewDocumentFromReader(resp.Body)
-		//assertOk(err)
-		//
-		//log.Println(doc.Find("#page-content").Text())
-
 
 		ioutil.WriteFile("/Users/springcat/Desktop/temp.html",bytes,os.ModePerm)
 		log.Println(string(bytes))
 	}
 
 }
-
+/**
+ 1 SUV
+ 2 SNUID
+ */
 func buildCookies() []*http.Cookie {
 	SNUID := &http.Cookie{
-		Name:"SNUID",
-		Value:"E9D7D7ADDEDB4FA715760C43DE814EFC",
+		Name:"SUV",
+		Value:"00B68873700A09345D6B9AA23BB99258",
 		Path:"/",
 		Domain:".sogou.com",
 		Expires:time.Now().Add(time.Hour*24),
@@ -94,7 +90,7 @@ func buildCookies() []*http.Cookie {
 
 	SUID := &http.Cookie{
 		Name:"SNUID",
-		Value:"34090A703F18960A000000005D6B9490",
+		Value:"92B32DCDB8BD293E62470518B99C41B4",
 		Path:"/",
 		Domain:"weixin.sogou.com",
 		Expires:time.Now().Add(time.Hour*24),
@@ -119,32 +115,50 @@ func queryContentUrl(param *ReqParam) (resp *http.Response, err error){
 	return sogouWechatGet(url, param.Ua,param.Referer, param.Cookies)
 }
 
+/**
+   function() {
+                var b = Math.floor(100 * Math.random()) + 1
+                  , a = this.href.indexOf("url=")
+                  , c = this.href.indexOf("&k=");
+                -1 !== a && -1 === c && (a = this.href.substr(a + 4 + parseInt("21") + b, 1),
+                this.href += "&k=" + b + "&h=" + a)
+            }
+ */
 func genContentReqUrl(rawUrl string) string{
-	a := strings.Index(rawUrl, "url=")
-	b := rand.Intn(99)+1
-	c := strings.Index(rawUrl, "&k=")
-	h := ""
-	if a !=-1 && c == -1{
-		start := a + 4 + 21 + b
-		h = rawUrl[start:start+1]
-
-	}
-	s := fmt.Sprintf("%s&k=%d&h=%s", rawUrl, b, h)
-	// 向buff中写入字符/字符串
-	return s;
-}
-
-func parseContentUrl(resp *http.Response) string {
-	doc, err := goquery.NewDocumentFromReader(resp.Body)
-	assertOk(err)
-
-	script := doc.Find("script").Text()
-	script = strings.Replace(script,"window.location.replace(url)","",-1)
-
-	vm := otto.New()
+	script :=`
+		var href = "`+rawUrl+`";
+		var b = Math.floor(100 * Math.random()) + 1
+		, a = href.indexOf("url=")
+		, c = href.indexOf("&k=");
+		-1 !== a && -1 === c && (a = href.substr(a + 4 + parseInt("21") + b, 1),
+			href += "&k=" + b + "&h=" + a)
+		
+	`
 	value, err := vm.Run(script)
 	assertOk(err)
 
+	log.Println("genContentReqUrl value:"+value.String())
+	return value.String()
+}
+
+func parseContentUrl(resp *http.Response) string {
+
+
+	doc, err := goquery.NewDocumentFromReader(resp.Body)
+	assertOk(err)
+
+	log.Println("parseContentUrl doc:"+doc.Text())
+
+	script := doc.Find("script").Text()
+
+	log.Println("parseContentUrl script:"+script)
+
+	script = strings.Replace(script,"window.location.replace(url)","",-1)
+
+	value, err := vm.Run(script)
+	assertOk(err)
+
+	log.Println("genContentReqUrl url:"+value.String())
 	return value.String()
 }
 
@@ -153,6 +167,20 @@ func getCookie(param ReqParam) (resp *http.Response, err error){
 	url := "https://weixin.sogou.com/weixin?type=2&query="+param.Key
 	return sogouWechatGet(url, param.Ua,url, param.Cookies)
 }
+//
+//func retryByChangeCookie(url string,ua string,referer string,cookies []*http.Cookie)  (resp *http.Response, err error){
+//	request, err := http.NewRequest("GET", url, nil)
+//	assertOk(err)
+//
+//	request.Header.Add("User-Agent", ua)
+//	request.Header.Add("Referer", referer)
+//	if(cookies != nil) {
+//		for _, cookie := range cookies {
+//			request.AddCookie(cookie)
+//		}
+//	}
+//	return http.DefaultClient.Do(request)
+//}
 
 func sogouWechatGet(url string,ua string,referer string,cookies []*http.Cookie)  (resp *http.Response, err error){
 	request, err := http.NewRequest("GET", url, nil)
@@ -171,6 +199,6 @@ func sogouWechatGet(url string,ua string,referer string,cookies []*http.Cookie) 
 
 func assertOk(err error) {
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 }
