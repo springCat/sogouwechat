@@ -90,8 +90,10 @@ func main() {
 func search(param *ReqParam) (resp *http.Response, err error){
 	url := "https://weixin.sogou.com/weixin?type=2&ie=utf8&query="+param.Key+"&tsn="+param.Tsn+"&wxid="+param.Wxid
 	if param.Page > 0 {
-		url = url+"&page="+strconv.Itoa(param.Page)
+		url = url+"&pae="+strconv.Itoa(param.Page)
 	}
+	log.Println("search url:"+url)
+	log.Println("search url:"+url)
 	log.Println("search url:"+url)
 	return tools.SogouWechatGet(url, param.Ua,param.Referer, param.Cookies)
 }
