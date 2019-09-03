@@ -5,7 +5,10 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
+	"time"
+
 	"github.com/PuerkitoBio/goquery"
 	"github.com/robertkrimen/otto"
 	"org.springcat/sougoWeixin/tools"
@@ -23,6 +26,7 @@ type ReqParam struct{
 	Tsn string
 	Ua string
 	Cookies []*http.Cookie
+	Page int
 }
 
 func main() {
@@ -33,7 +37,7 @@ func main() {
 	param := &ReqParam{
 		Key:"刘备教授",
 		Wxid:"oIWsFtx2SU5am12hfw0hb6qYgUXg",
-		Tsn:"1",
+		Tsn:"4",
 		Ua:UA,
 		Referer :"https://weixin.sogou.com/weixin?type=2&ie=utf8&query=刘备教授&tsn=1&wxid=oIWsFtx2SU5am12hfw0hb6qYgUXg",
 		Cookies:cookie.GetCookie(),
@@ -43,7 +47,7 @@ func main() {
 
 	doc, err := goquery.NewDocumentFromReader(resp.Body)
 	tools.AssertOk(err)
-
+	log.Println("fisrt search content:"+doc.Text())
 	selection := doc.Find(".news-list li .txt-box h3 a")
 
 	travel(selection,func(value string){
@@ -52,15 +56,42 @@ func main() {
 		param.Key = contentUrl
 		getContent(param)
 	})
+
+	for {
+		nextUrl, isExist := doc.Find("#sogou_next").Attr("href")
+		if isExist {
+			log.Println("go to next page")
+			url := "https://weixin.sogou.com/weixin"+nextUrl
+			log.Println("queryNextPage url:"+url)
+			resp, err := tools.SogouWechatGet(url, param.Ua, param.Referer, param.Cookies)
+			tools.AssertOk(err)
+			doc, err = goquery.NewDocumentFromReader(resp.Body)
+			log.Println("next search content:"+doc.Text())
+			tools.AssertOk(err)
+
+			selection := doc.Find(".news-list li .txt-box h3 a")
+			travel(selection,func(value string){
+				param.Key = value
+				contentUrl := QueryContentUrl(param)
+				param.Key = contentUrl
+				getContent(param)
+			})
+
+		}else{
+			log.Println("page end")
+			break;
+		}
+	}
 }
-
-
 
 /**
  * 1st search the key
  */
 func search(param *ReqParam) (resp *http.Response, err error){
 	url := "https://weixin.sogou.com/weixin?type=2&ie=utf8&query="+param.Key+"&tsn="+param.Tsn+"&wxid="+param.Wxid
+	if param.Page > 0 {
+		url = url+"&page="+strconv.Itoa(param.Page)
+	}
 	log.Println("search url:"+url)
 	return tools.SogouWechatGet(url, param.Ua,param.Referer, param.Cookies)
 }
@@ -75,6 +106,7 @@ func travel(selection *goquery.Selection,handle func(string))  {
 			value := attr.Val
 			if len(value) > 0 {
 				handle(value)
+				time.Sleep(time.Second*10)
 			}
 		}
 	}
@@ -147,5 +179,7 @@ func getContent(param *ReqParam)  {
 	tools.AssertOk(err)
 	bytes, err := ioutil.ReadAll(resp.Body)
 	tools.AssertOk(err)
-	ioutil.WriteFile("/Users/springcat/Desktop/temp.html",bytes,os.ModePerm)
+
+	now := time.Now()
+	ioutil.WriteFile("/Users/springcat/Desktop/page/"+now.String()+".html",bytes,os.ModePerm)
 }

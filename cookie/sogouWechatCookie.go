@@ -3,6 +3,8 @@ package cookie
 import (
 	"log"
 	"net/http"
+	"time"
+
 	"org.springcat/sougoWeixin/tools"
 )
 
@@ -27,6 +29,23 @@ func FetchCookie(ua string){
 			cookies = append(cookies,v)
 		}
 	}
+
+	SUV := &http.Cookie{
+		Name:    "SUV",
+		Value:   "00B68873700A09345D6B9AA23BB99258",
+		Path:    "/",
+		Domain:  ".sogou.com",
+		Expires: time.Now().Add(time.Hour * 24),
+	}
+	SNUID := &http.Cookie{
+		Name:    "SNUID",
+		Value:   "0626BE592B29BDB63659830F2C4AD60B",
+		Path:    "/",
+		Domain:  ".sogou.com",
+		Expires: time.Now().Add(time.Hour * 24),
+	}
+	cookies = append(cookies,SUV)
+	cookies = append(cookies,SNUID)
 
 	if len(cookies) > 0{
 		store.Add(cookies)
